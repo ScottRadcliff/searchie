@@ -4,13 +4,14 @@ defmodule Searchie do
   """
 
   @type modifier :: {String.t(), String.t() | true}
-  @type result :: %{matches: [String.t()], modifiers: [modifier()]}
+  @type match :: %{file_path: Path.t(), line_number: pos_integer(), line_text: String.t()}
+  @type result :: %{matches: [match()], modifiers: [modifier()]}
 
   @doc """
   Filters `path` for lines containing `query`.
 
   Supports both files and directories. Directory searches are recursive and
-  return lines formatted as `path:line`. If `query` is wrapped in `/.../`,
+  include file and line metadata for each match. If `query` is wrapped in `/.../`,
   it is treated as a regular expression.
   """
   @spec filter(Path.t(), String.t(), [modifier()]) ::
@@ -38,7 +39,11 @@ defmodule Searchie do
       {:ok, content} ->
         content
         |> String.split("\n", trim: false)
-        |> Enum.filter(matcher)
+        |> Enum.with_index(1)
+        |> Enum.filter(fn {line, _line_number} -> matcher.(line) end)
+        |> Enum.map(fn {line, line_number} ->
+          %{file_path: file_path, line_number: line_number, line_text: line}
+        end)
 
       {:error, _reason} ->
         []
@@ -50,11 +55,7 @@ defmodule Searchie do
     |> Path.join("**/*")
     |> Path.wildcard()
     |> Enum.filter(&File.regular?/1)
-    |> Enum.flat_map(fn file_path ->
-      file_path
-      |> file_matches(matcher)
-      |> Enum.map(fn line -> "#{file_path}:#{line}" end)
-    end)
+    |> Enum.flat_map(&file_matches(&1, matcher))
   end
 
   defp build_matcher(query) do

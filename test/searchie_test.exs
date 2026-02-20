@@ -5,8 +5,10 @@ defmodule SearchieTest do
     test "returns lines containing the query" do
       path = write_file!("alpha\nbeta\nalphabet\ngamma\n")
 
-      assert {:ok, %{matches: ["alpha", "alphabet"], modifiers: []}} =
-               Searchie.filter(path, "alpha")
+      assert {:ok, %{matches: matches, modifiers: []}} = Searchie.filter(path, "alpha")
+      assert Enum.map(matches, & &1.line_text) == ["alpha", "alphabet"]
+      assert Enum.map(matches, & &1.line_number) == [1, 3]
+      assert Enum.all?(matches, &(&1.file_path == path))
     end
 
     test "returns no matches when query is absent" do
@@ -24,8 +26,10 @@ defmodule SearchieTest do
       path = write_file!("red\nblue\n")
       modifiers = [{"count", true}, {"context", "2"}]
 
-      assert {:ok, %{matches: ["red"], modifiers: ^modifiers}} =
+      assert {:ok, %{matches: matches, modifiers: ^modifiers}} =
                Searchie.filter(path, "red", modifiers)
+
+      assert Enum.map(matches, & &1.line_text) == ["red"]
     end
 
     test "supports recursive directory search" do
@@ -38,15 +42,15 @@ defmodule SearchieTest do
       File.write!(file_b, "gamma three\nalpha four\n")
 
       assert {:ok, %{matches: matches, modifiers: []}} = Searchie.filter(dir, "alpha")
-      assert "#{file_a}:alpha one" in matches
-      assert "#{file_b}:alpha four" in matches
+      assert Enum.any?(matches, &(&1.file_path == file_a and &1.line_text == "alpha one"))
+      assert Enum.any?(matches, &(&1.file_path == file_b and &1.line_text == "alpha four"))
     end
 
     test "supports regex query when wrapped in slashes" do
       path = write_file!("alpha one\nbeta one\nalpha two\n")
 
-      assert {:ok, %{matches: ["alpha one", "beta one"], modifiers: []}} =
-               Searchie.filter(path, "/[a-z]+ one/")
+      assert {:ok, %{matches: matches, modifiers: []}} = Searchie.filter(path, "/[a-z]+ one/")
+      assert Enum.map(matches, & &1.line_text) == ["alpha one", "beta one"]
     end
 
     test "returns invalid regex error for malformed regex query" do

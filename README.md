@@ -40,6 +40,13 @@ mix filter path/to/file.txt "needle" --modifier count
 mix filter path/to/directory "needle" --modifier count
 ```
 
+Show context lines around each match:
+
+```bash
+mix filter path/to/file.txt "needle" --modifier context=2
+mix filter path/to/directory "needle" --modifier context=3
+```
+
 ## Notes
 
 - `--modifier` can be provided multiple times.
@@ -47,5 +54,5 @@ mix filter path/to/directory "needle" --modifier count
 - Query is treated as regex when wrapped in `/.../`.
 - When searching a directory, output is formatted as `path/to/file:matching line`.
 - `count` prints only the total number of matches.
+- `context=N` shows `N` lines above and below each match.
 - `color` now highlights the matched text. If provided as a flag, it defaults to yellow.
-- Modifiers other than `color` are currently parsed and passed through for future feature work.

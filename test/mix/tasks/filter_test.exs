@@ -123,6 +123,49 @@ defmodule Mix.Tasks.FilterTest do
     end
   end
 
+  test "shows surrounding lines when context modifier is set" do
+    path = write_file!("zero\nalpha one\ntwo\nthree\n")
+
+    output =
+      capture_io(fn ->
+        Mix.Task.reenable("filter")
+        Mix.Tasks.Filter.run([path, "alpha", "--modifier", "context=1"])
+      end)
+
+    assert output =~ "[1] #{path}:2"
+    assert output =~ "  1: zero"
+    assert output =~ "> 2: alpha one"
+    assert output =~ "  3: two"
+  end
+
+  test "supports context with directory searches" do
+    dir = make_dir!()
+    file_path = Path.join(dir, "a.txt")
+    File.write!(file_path, "one\nalpha\ntwo\n")
+
+    output =
+      capture_io(fn ->
+        Mix.Task.reenable("filter")
+        Mix.Tasks.Filter.run([dir, "alpha", "--modifier", "context=1"])
+      end)
+
+    assert output =~ "[1] #{file_path}:2"
+    assert output =~ "  1: one"
+    assert output =~ "> 2: alpha"
+    assert output =~ "  3: two"
+  end
+
+  test "raises for invalid context modifier values" do
+    path = write_file!("alpha\n")
+
+    assert_raise Mix.Error, "context modifier must be a non-negative integer: nope", fn ->
+      capture_io(fn ->
+        Mix.Task.reenable("filter")
+        Mix.Tasks.Filter.run([path, "alpha", "--modifier", "context=nope"])
+      end)
+    end
+  end
+
   defp write_file!(contents) do
     path = Path.join(System.tmp_dir!(), "searchie-#{System.unique_integer([:positive])}.txt")
     File.write!(path, contents)
