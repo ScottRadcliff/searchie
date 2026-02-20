@@ -14,6 +14,12 @@ Search a directory recursively:
 mix filter path/to/directory "needle"
 ```
 
+Use a regex query by wrapping it in `/.../`:
+
+```bash
+mix filter path/to/file.txt "/error [0-9]+/"
+```
+
 With modifiers (accepted now, behavior can be added later):
 
 ```bash
@@ -38,6 +44,7 @@ mix filter path/to/directory "needle" --modifier count
 
 - `--modifier` can be provided multiple times.
 - Supported formats are `key=value` and `flag`.
+- Query is treated as regex when wrapped in `/.../`.
 - When searching a directory, output is formatted as `path/to/file:matching line`.
 - `count` prints only the total number of matches.
 - `color` now highlights the matched text. If provided as a flag, it defaults to yellow.

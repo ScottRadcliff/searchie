@@ -98,6 +98,31 @@ defmodule Mix.Tasks.FilterTest do
     assert output == "3\n"
   end
 
+  test "supports regex queries in CLI" do
+    path = write_file!("alpha one\nbeta one\nalpha two\n")
+
+    output =
+      capture_io(fn ->
+        Mix.Task.reenable("filter")
+        Mix.Tasks.Filter.run([path, "/[a-z]+ one/"])
+      end)
+
+    assert output =~ "alpha one"
+    assert output =~ "beta one"
+    refute output =~ "alpha two"
+  end
+
+  test "raises for invalid regex query" do
+    path = write_file!("alpha\n")
+
+    assert_raise Mix.Error, "Invalid regex query: /(unclosed/", fn ->
+      capture_io(fn ->
+        Mix.Task.reenable("filter")
+        Mix.Tasks.Filter.run([path, "/(unclosed/"])
+      end)
+    end
+  end
+
   defp write_file!(contents) do
     path = Path.join(System.tmp_dir!(), "searchie-#{System.unique_integer([:positive])}.txt")
     File.write!(path, contents)

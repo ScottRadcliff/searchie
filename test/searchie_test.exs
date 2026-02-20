@@ -41,6 +41,18 @@ defmodule SearchieTest do
       assert "#{file_a}:alpha one" in matches
       assert "#{file_b}:alpha four" in matches
     end
+
+    test "supports regex query when wrapped in slashes" do
+      path = write_file!("alpha one\nbeta one\nalpha two\n")
+
+      assert {:ok, %{matches: ["alpha one", "beta one"], modifiers: []}} =
+               Searchie.filter(path, "/[a-z]+ one/")
+    end
+
+    test "returns invalid regex error for malformed regex query" do
+      path = write_file!("alpha\n")
+      assert {:error, :invalid_regex} = Searchie.filter(path, "/(unclosed/")
+    end
   end
 
   defp write_file!(contents) do

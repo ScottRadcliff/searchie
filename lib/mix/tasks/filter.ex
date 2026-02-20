@@ -40,6 +40,9 @@ defmodule Mix.Tasks.Filter do
 
           {:error, :unsupported_path} ->
             Mix.raise("Unsupported path type: #{path}")
+
+          {:error, :invalid_regex} ->
+            Mix.raise("Invalid regex query: #{query}")
         end
 
       {:error, message} ->
@@ -80,6 +83,26 @@ defmodule Mix.Tasks.Filter do
         matches
 
       color ->
+        apply_color(matches, query, color)
+    end
+  end
+
+  defp apply_color(matches, query, color) do
+    case parse_regex_query(query) do
+      {:regex, pattern} ->
+        case Regex.compile(pattern) do
+          {:ok, regex} ->
+            Enum.map(matches, fn line ->
+              Regex.replace(regex, line, fn match ->
+                IO.ANSI.format([color, match, :reset], true) |> IO.iodata_to_binary()
+              end)
+            end)
+
+          {:error, _reason} ->
+            matches
+        end
+
+      :literal ->
         colored_query = IO.ANSI.format([color, query, :reset], true) |> IO.iodata_to_binary()
         Enum.map(matches, &String.replace(&1, query, colored_query))
     end
@@ -103,5 +126,15 @@ defmodule Mix.Tasks.Filter do
 
   defp count_enabled?(modifiers) do
     Enum.any?(modifiers, fn {name, _value} -> name == "count" end)
+  end
+
+  defp parse_regex_query(query) do
+    if String.length(query) >= 2 and String.starts_with?(query, "/") and
+         String.ends_with?(query, "/") do
+      pattern = String.slice(query, 1, String.length(query) - 2)
+      {:regex, pattern}
+    else
+      :literal
+    end
   end
 end
